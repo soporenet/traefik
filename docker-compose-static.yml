@@ -1,0 +1,24 @@
+version: '3.7'
+
+services:
+  # Traefik - Reverse Proxy
+  traefik:
+    image: docker.io/traefik:v3.2.1  # Traefik 3.2.1 latest stable version from Docker Hub
+    container_name: traefik
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"  # Point to the static configuration file
+      - "--api.insecure=true"  # Enable insecure access to the dashboard (without authentication)
+    ports:
+      - "7080:80"    # HTTP -> Custom Port 8080 (Host Port)
+      - "7443:443"   # HTTPS -> Custom Port 8443 (Host Port)
+      - "8080:8080" # Traefik Dashboard -> Custom Port 18080 (Host Port)
+    volumes:
+      - "./dynamic-config:/etc/traefik/dynamic"  # Mount static configuration file
+      - "./traefik.yml:/etc/traefik/traefik.yml"  # Mount static configuration file
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: false
+

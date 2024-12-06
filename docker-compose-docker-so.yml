@@ -1,0 +1,97 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: docker.io/traefik:v3.2.1
+    container_name: traefik
+    command:
+      # Enable Let's Encrypt with HTTP challenge (for SSL)
+      - "--certificatesresolvers.myresolver.acme.httpChallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpChallenge.entryPoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=your-email@example.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      
+      # Enable web UI (with restricted access)
+      - "--api.insecure=true"  # Turn off insecure API access
+      #- "--api=true"
+      #- "--api.dashboard=true"
+
+      # Enable providers
+      #- "--providers.docker=true"  # Enable Docker provider
+      #- "--providers.docker.exposedbydefault=false"  # Do not expose all containers by default
+
+      # Enable logging and access logs
+      - "--log.level=INFO"  # Set log level to INFO (could be DEBUG for more detailed logs)
+      - "--accesslog=true"  # Enable access logs
+      - "--accesslog.fields.defaultmode=keep"  # Keep all fields in access logs
+      - "--accesslog.fields.headers.names.Host=keep"
+      - "--accesslog.fields.headers.names.User-Agent=keep"
+      - "--accesslog.fields.headers.names.Referer=keep"
+      - "--accesslog.fields.headers.names.Content-Type=keep"
+
+      # Define entrypoints
+      - "--entrypoints.web.address=:80"  # HTTP port
+      - "--entrypoints.websecure.address=:443"  # HTTPS port
+      #- --entrypoints.web.http.redirections.entrypoint.to=websecure
+      #- --entryPoints.web.http.redirections.entrypoint.scheme=https
+      #- --entrypoints.websecure.asDefault=true 
+      #- --entrypoints.websecure.http.tls.certresolver=myresolver
+      #- --certificatesresolvers.myresolver.acme.email=mail@example.com
+      #- --certificatesresolvers.myresolver.acme.tlschallenge=true
+      #- --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.dashboard.rule=Host(`localhost`)
+      - traefik.http.routers.dashboard.service=api@internal
+      - traefik.http.routers.dashboard.middlewares=myauth
+      - traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/
+
+    ports:
+      - "5080:80"    # Expose HTTP port
+      - "5443:443"  # Expose HTTPS port
+      - "8080:8080"  # Expose HTTPS port
+      #- "9080:8080"  # Expose dashboard (securely)
+    volumes:
+      - "/u01/mydev/containers-fs-layout/letsencrypt/data:/letsencrypt"  # Mount for storing SSL certificates
+    networks:
+      - web
+    restart: always
+
+  nginx:
+    image: docker.io/nginx:latest  # Replace with your app image
+    container_name: nginx
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`localhost`)"  # Routing rule
+      - "traefik.http.routers.nginx.entrypoints=websecure"  # Use the "websecure" entrypoint for HTTPS
+      - "traefik.http.routers.nginx.tls.certresolver=myresolver"  # Use the Let's Encrypt cert resolver
+      #- "traefik.http.routers.dashboard.rule=Host(`localhost`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      #- "traefik.http.routers.dashboard.service=api@internal"
+      #- "traefik.http.routers.dashboard.middlewares=auth"
+      #- "traefik.http.middlewares.auth.basicauth.users=test:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/,test2:$$apr1$$d9hr9HBB$$4HxwgUir3HP4EsggP/QNo0"
+
+    networks:
+      - web
+    restart: always
+
+  # Optional: A simple "Whoami" container for testing
+  whoami:
+    image: docker.io/traefik/whoami  # Traefik's "Whoami" container for testing purposes
+    container_name: whoami
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`localhost`)"  # Routing rule for testing
+      - "traefik.http.routers.whoami.entrypoints=websecure"  # Use the "websecure" entrypoint
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"  # Use the Let's Encrypt cert resolver
+    networks:
+      - web
+    restart: always
+
+networks:
+  web:
+    driver: bridge
+
+volumes:
+  acme:
+

@@ -1,0 +1,37 @@
+# traefik.yml - Static Configuration for Traefik
+api:
+  insecure: true  # Expose Traefik's dashboard without authentication (insecure mode)
+  dashboard: true
+  
+# Enable HTTP router and entry points
+entryPoints:
+  # Dashboard entry point
+  traefik:
+    address: ":8080"  # Enable dashboard on port (traefik:8080)
+  http:
+    address: ":80"  # Use Port 8080 for HTTP
+  https:
+    address: ":443"  # Use Port 8443 for HTTPS
+
+
+# Define the HTTP routers and services manually
+traefik:
+  routers:
+    dashboard:
+      rule: "Host(`localhost:8080`)"  # Expose the dashboard on port 8080 (Host rule)
+      service: "api@internal"  # Use the internal Traefik API service for the dashboard
+      entryPoints:
+        - "traefik"  # Bind to HTTP entrypoint
+
+  services:
+    dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://localhost:8080"  # Traefik's dashboard port internally
+
+# Enable the web UI (accessible via localhost:18080)
+providers:
+  file:
+    filename: "/etc/traefik/traefik.yml"
+    directory: "/etc/traefik/dynamic"  # Directory to read dynamic configuration files (optional)
+    watch: true

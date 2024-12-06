@@ -1,0 +1,32 @@
+http:
+  routers:
+    npm-adm-route:
+      rule: "Host(`admin.local`)"
+      service: "npm-adm"
+      entryPoints:
+        - http
+    npm-fe-route:
+      rule: "Host(`frontend.local`)"
+      service: "npm-fe"
+      entryPoints:
+        - http
+    example-service:
+      rule: "Host(`example.local`)"
+      service: "example-service"
+      entryPoints:
+        - http
+
+  services:
+    npm-adm:
+      loadBalancer:
+        servers:
+          - url: "http://nginx-proxy-manager:81"  # Nginx Proxy Manager service (inside container on port 81)
+    npm-fe:
+      loadBalancer:
+        servers:
+          - url: "http://nginx-proxy-manager:80"  # Nginx Proxy Manager service (inside container on port 81)
+    example-service:
+      loadBalancer:
+        servers:
+          - url: "http://example-service:80"  # Example service managed by Nginx Proxy Manager
+
