@@ -3,33 +3,32 @@ version: '3.7'
 services:
   # Traefik Service
   traefik:
-    docker.io/traefik:v3.2.1  # Traefik 3.2.1 latest stable version from Docker Hub
+    image: docker.io/traefik:v3.2.1  # Traefik 3.2.1 latest stable version from Docker Hub
     container_name: traefik
     command:
-      - "--api.insecure=false"                     # Disable insecure API access
-      - "--api.dashboard=true"                      # Enable Traefik dashboard
-      - "--entryPoints.web.address=:80"             # HTTP entry point
-      - "--entryPoints.web-secure.address=:443"     # HTTPS entry point
-      - "--certificatesResolvers.letsencrypt.acme.email=${CF_API_EMAIL}"  # Use Cloudflare email from .env
-      - "--certificatesResolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"  # Let's Encrypt storage location
-      - "--certificatesResolvers.letsencrypt.acme.dnsChallenge.provider=cloudflare"  # Use Cloudflare DNS challenge
-      - "--certificatesResolvers.letsencrypt.acme.dnsChallenge.delayBeforeCheck=0"  # Optional, adjust DNS propagation delay if needed
-      - "--providers.file.filename=/etc/traefik/dynamic.yml"  # Path to dynamic config file
+      - --api.insecure=false                     # Disable insecure API access
+      - --api.dashboard=true                      # Enable Traefik dashboard
+      - --entryPoints.web.address=:80             # HTTP entry point
+      - --entryPoints.web-secure.address=:443     # HTTPS entry point
+      - --log.level=DEBUG
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
       - "./traefik.yml:/etc/traefik/traefik.yml"  # Traefik static config
       - "./dynamic-config:/etc/traefik/dynamic"  # Mount static configuration file
-      - "./acme.json:/etc/traefik/acme.json"  # Store certificates here
+      - "/u01/mydev/containers-fs-layout/letsencrypt/data/acme.json:/etc/traefik/acme.json"  # Store certificates here
     environment:
-      - CF_API_EMAIL=${CF_API_EMAIL}  # Pass Cloudflare email to Traefik container
-      - CF_API_KEY=${CF_API_KEY}      # Pass Cloudflare API key to Traefik container
+      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
+      #- CF_API_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
+      #- CLOUDFLARE_API_KEY=${CF_API_KEY}      # Pass Cloudflare API key to Traefik container
+      #- CF_API_KEY=${CF_API_KEY}      # Pass Cloudflare API key to Traefik container
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     restart: always
     networks:
       - traefik-net
     restart: always
-	
+
   # Nginx as a reverse proxy with HTML form-based RADIUS authentication for Traefik dashboard
   nginx:
     image: docker.io/nginx:latest
@@ -38,9 +37,9 @@ services:
       - "./nginx.conf:/etc/nginx/nginx.conf"  # Nginx config file for RADIUS authentication
       - "./login-form.html:/usr/share/nginx/html/login-form.html"  # Custom HTML login form
       - "./styles.css:/usr/share/nginx/html/styles.css"
-      - "./ssl:/etc/nginx/ssl"  # SSL certificate and key (self-signed or Let's Encrypt)
+      - "/u01/mydev/containers-fs-layout/letsencrypt/data/acme.json:/etc/nginx/ssl"  # SSL certificate and key (self-signed or Let's Encrypt)
     ports:
-      - "443:443"  # Expose HTTPS port for dashboard
+      - "18443:443"  # Expose HTTPS port for dashboard
     depends_on:
       - traefik
     restart: always

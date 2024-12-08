@@ -1,26 +1,42 @@
 # traefik.yml
-api:
-  dashboard: true
-  insecure: false  # Disable insecure dashboard access
 
+# API Configuration
+api:
+  insecure: false                           # Disable insecure API access
+  dashboard: true                           # Enable Traefik dashboard
+
+# Log Configuration
+log:
+  level: DEBUG                              # Set log level to DEBUG
+
+# Entry Points Configuration
 entryPoints:
   web:
-    address: ":80"  # HTTP entry point
+    address: ":80"                          # HTTP entry point (port 80)
   web-secure:
-    address: ":443"  # HTTPS entry point
+    address: ":443"                         # HTTPS entry point (port 443)
 
+# Certificates Resolvers Configuration for Let's Encrypt
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "${CF_API_EMAIL}"  # Use Cloudflare email from environment
+      # ACME Email for registration (using an environment variable)
+      email: cert-mgr@sopore.net
+      # ACME storage file for certificates
       storage: "/etc/traefik/acme.json"
+      # ACME server URL (Let's Encrypt Staging)
+      #caserver: "https://acme-staging-v02.api.letsencrypt.org/directory"
+      
+      # DNS Challenge Configuration for Let's Encrypt
       dnsChallenge:
-        provider: cloudflare  # Cloudflare DNS challenge
-        delayBeforeCheck: 0
+        provider: cloudflare              # Use Cloudflare as DNS provider
+        delayBeforeCheck: 0               # Delay before checking DNS propagation
         resolvers:
-          - "8.8.8.8:53"  # Optional: Google's DNS resolver (can be customized)
+          - "8.8.8.8:53"                 # Optional: Google's DNS resolver (can be customized)
 
+# Provider Configuration (for dynamic configuration file)
 providers:
   file:
-    filename: "/etc/traefik/traefik.yml"
-    directory: "/etc/traefik/dynamic"  # Directory to read dynamic configuration files (optional)
+    filename: "/etc/traefik/traefik.yml"   # Path to static configuration file (self-reference)
+    directory: "/etc/traefik/dynamic"      # Directory to read dynamic configuration files (optional)
+

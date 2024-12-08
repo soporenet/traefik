@@ -6,6 +6,10 @@ http:
       entryPoints:
         - web-secure
       service: api@internal
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "traefik.sandbox.sopore.net"  # The domain name
       middlewares:
         - auth-radius
     # Router for the first domain (testbed1.sandbox.sopore.net)
@@ -18,24 +22,23 @@ http:
         certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
         domains:
           - main: "testbed1.sandbox.sopore.net"  # The domain name
-
     # Router for the second domain ("testbed2.sandbox.sopore.net)
     testbed2-router:
-      rule: "Host(`"testbed2.sandbox.sopore.net`)"  # Define another domain
+      rule: "Host(`testbed2.sandbox.sopore.net`)"  # Define another domain
       entryPoints:
         - "web-secure"  # Use HTTPS entrypoint
       service: testbed2-service
       tls:
         certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
         domains:
-          - main: ""testbed2.sandbox.sopore.net"  # The domain name
-		  
+          - main: "testbed2.sandbox.sopore.net"  # The domain name
+
   middlewares:
     auth-radius:
       forwardAuth:
         address: "http://nginx:80"  # Forward authentication to Nginx
         trustForwardHeader: true
-		
+
   services:
     testbed1-service:
       loadBalancer:
@@ -46,7 +49,6 @@ http:
       loadBalancer:
         servers:
           - url: "http://testbed2-backend"  # Replace with your backend URL
-  services:
     api:
       loadBalancer:
         servers:
