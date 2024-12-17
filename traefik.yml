@@ -15,6 +15,8 @@ entryPoints:
     address: ":80"                          # HTTP entry point (port 80)
   web-secure:
     address: ":443"                         # HTTPS entry point (port 443)
+  dashboard-secure:
+    address: ":18443"
 
 # Certificates Resolvers Configuration for Let's Encrypt
 certificatesResolvers:
@@ -23,10 +25,10 @@ certificatesResolvers:
       # ACME Email for registration (using an environment variable)
       email: cert-mgr@sopore.net
       # ACME storage file for certificates
-      storage: "/etc/traefik/acme.json"
+      storage: "/etc/traefik/letsencrypt/acme.json"
       # ACME server URL (Let's Encrypt Staging)
       #caserver: "https://acme-staging-v02.api.letsencrypt.org/directory"
-      
+
       # DNS Challenge Configuration for Let's Encrypt
       dnsChallenge:
         provider: cloudflare              # Use Cloudflare as DNS provider

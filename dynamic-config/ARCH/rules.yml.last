@@ -1,0 +1,56 @@
+# dynamic.yml
+http:
+  routers:
+    traefik-dashboard:
+      rule: "Host(`traefik.sandbox.sopore.net`)"  # Domain for the Traefik dashboard
+      entryPoints:
+        - "dashboard-secure"
+      service: api@internal
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "traefik.sandbox.sopore.net"  # The domain name
+      middlewares:
+        - auth-radius
+    # Router for the first domain (signin.sandbox.sopore.net)
+    signin-router:
+      rule: "Host(`signin.sandbox.sopore.net`)"  # Define domain
+      entryPoints:
+        - "web-secure"  # Use HTTPS entrypoint
+      service: signin-service
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "signin.sandbox.sopore.net"  # The domain name
+    # Router for the second domain ("testbed2.sandbox.sopore.net)
+    testbed2-router:
+      rule: "Host(`testbed2.sandbox.sopore.net`)"  # Define another domain
+      entryPoints:
+        - "web-secure"  # Use HTTPS entrypoint
+      service: testbed2-service
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "testbed2.sandbox.sopore.net"  # The domain name
+
+  middlewares:
+    auth-radius:
+      forwardAuth:
+        address: "http://nginx:80/dashboard/authFilter"  # Forward authentication to Nginx 80
+        trustForwardHeader: true
+
+  services:
+    signin-service:
+      loadBalancer:
+        servers:
+          - url: "http://nginx:80/signin"  # Replace with your backend URL
+
+    testbed2-service:
+      loadBalancer:
+        servers:
+          - url: "http://testbed2-backend"  # Replace with your backend URL
+    api:
+      loadBalancer:
+        servers:
+          - url: "https://traefik:18443"  # Traefik's internal dashboard 8080
+

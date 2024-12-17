@@ -4,7 +4,7 @@ http:
     traefik-dashboard:
       rule: "Host(`traefik.sandbox.sopore.net`)"  # Domain for the Traefik dashboard
       entryPoints:
-        - web-secure
+        - "dashboard-secure"
       service: api@internal
       tls:
         certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
@@ -35,9 +35,9 @@ http:
 
   middlewares:
     auth-radius:
-      forwardAuth:
-        address: "http://nginx:80"  # Forward authentication to Nginx
-        trustForwardHeader: true
+      basicAuth:
+        users:
+          - "admin:$apr1$tgxs4JVS$ROLgUFzK1o8woN23Rz4Ga/"
 
   services:
     testbed1-service:
@@ -52,5 +52,5 @@ http:
     api:
       loadBalancer:
         servers:
-          - url: "http://traefik:8080"  # Traefik's internal dashboard
+          - url: "http://traefik:8086"  # Traefik's internal dashboard 8080
 

@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  # Traefik Service
+  traefik:
+    image: docker.io/traefik:latest  # Traefik 3.2.1 latest stable version from Docker Hub
+    container_name: traefik
+    command:
+      - --api.insecure=false                     # Disable insecure API access
+      - --api.dashboard=true                      # Enable Traefik dashboard
+      - --entryPoints.web.address=:80             # HTTP entry point
+      - --entryPoints.web-secure.address=:443     # HTTPS entry point
+      - --log.level=DEBUG
+    ports:
+      - "7080:80"
+      - "7443:443"
+      - "18443:18443"
+    volumes:
+      - "./traefik.yml:/etc/traefik/traefik.yml"  # Traefik static config
+      - "./dynamic-config:/etc/traefik/dynamic"  # Mount static configuration file
+      - "/u01/mydev/containers-fs-layout/letsencrypt/data:/etc/traefik/letsencrypt"  # Store certificates here
+    environment:
+      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
+      #- CF_API_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
+      #- CLOUDFLARE_API_KEY=${CF_API_KEY}      # Pass Cloudflare API key to Traefik container
+      #- CF_API_KEY=${CF_API_KEY}      # Pass Cloudflare API key to Traefik container
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    restart: always
+    networks:
+      - web-net
+    restart: always
+
+networks:
+  web-net:
+    external:
+      name: mgmt-net
+

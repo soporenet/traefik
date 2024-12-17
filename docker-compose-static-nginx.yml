@@ -12,12 +12,14 @@ services:
       - --entryPoints.web-secure.address=:443     # HTTPS entry point
       - --log.level=DEBUG
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "7080:80"
+      - "7443:443"
+      #- "8080:8080"
+      - "18443:18443"
     volumes:
       - "./traefik.yml:/etc/traefik/traefik.yml"  # Traefik static config
       - "./dynamic-config:/etc/traefik/dynamic"  # Mount static configuration file
-      - "/u01/mydev/containers-fs-layout/letsencrypt/data/acme.json:/etc/traefik/acme.json"  # Store certificates here
+      - "/u01/mydev/containers-fs-layout/letsencrypt/data:/etc/traefik/letsencrypt"  # Store certificates here
     environment:
       - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
       #- CF_API_EMAIL=${CLOUDFLARE_EMAIL}  # Pass Cloudflare email to Traefik container
@@ -29,27 +31,43 @@ services:
       - traefik-net
     restart: always
 
-  # Nginx as a reverse proxy with HTML form-based RADIUS authentication for Traefik dashboard
-  nginx:
-    image: docker.io/nginx:latest
-    container_name: nginx
-    volumes:
-      - "./nginx.conf:/etc/nginx/nginx.conf"  # Nginx config file for RADIUS authentication
-      - "./login-form.html:/usr/share/nginx/html/login-form.html"  # Custom HTML login form
-      - "./styles.css:/usr/share/nginx/html/styles.css"
-      - "/u01/mydev/containers-fs-layout/letsencrypt/data/acme.json:/etc/nginx/ssl"  # SSL certificate and key (self-signed or Let's Encrypt)
-    ports:
-      - "18443:443"  # Expose HTTPS port for dashboard
-    depends_on:
-      - traefik
+  # Authelia for authentication
+  authelia:
+    image: docker.io/authelia/authelia:latest
+    container_name: authelia
     restart: always
     networks:
       - traefik-net
+    environment:
+      - TZ=UTC
+      - JWT_SECRET=your-jwt-secret-key
+      - SESSION_SECRET=your-session-secret-key
+      - STORAGE_ENCRYPTION_KEY=your-storage-encryption-key
+      - AUTHENTICATION_BACKEND=radius
+      - RADIUS_SERVER=192.168.56.116  # Replace with your RADIUS server IP or hostname
+      - RADIUS_PORT=1812
+      - RADIUS_SECRET=1234567890
+      - REDIS_HOST=redis  # Assuming Redis is used for session storage
+      - REDIS_PORT=6379
+    ports:
+      - "9091:9091"  # Exposes the Authelia dashboard (optional)
+    volumes:
+      - ./config:/config
+      - ./data:/data
+
+  # Redis (used by Authelia for session storage)
+  redis:
+    image: docker.io/redis:alpine
+    container_name: redis
     restart: always
+    networks:
+      - traefik-net
+    volumes:
+      - redis-data:/data
 
 networks:
   traefik-net:
     driver: bridge
 
-
-
+volumes:
+  redis-data:

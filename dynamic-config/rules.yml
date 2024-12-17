@@ -1,0 +1,75 @@
+# rules.yml
+http:
+  routers:
+    traefik-dashboard:
+      rule: "Host(`traefik.sandbox.sopore.net`)"  # Domain for the Traefik dashboard
+      entryPoints:
+        - "dashboard-secure"
+      service: api@internal
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "traefik.sandbox.sopore.net"  # The domain name
+      middlewares:
+        - authelia-auth
+    # Router for (signin.sandbox.sopore.net)
+    signin-router:
+      rule: "Host(`signin.sandbox.sopore.net`)"  # Define domain
+      entryPoints:
+        - "web-secure"  # Use HTTPS entrypoint
+      service: signin-svc
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "signin.sandbox.sopore.net"  # The domain name
+    # Router for (hotspot.sandbox.sopore.net)
+    hotspot-router:
+      rule: "Host(`hotspot.sandbox.sopore.net`)"  # Define domain
+      entryPoints:
+        - "web-secure"  # Use HTTPS entrypoint
+      service: hotspot-svc
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "hotspot.sandbox.sopore.net"  # The domain name
+    # Router for (landing.sandbox.sopore.net)
+    landing-router:
+      rule: "Host(`landing.sandbox.sopore.net`)"  # Define domain
+      entryPoints:
+        - "web-secure"  # Use HTTPS entrypoint
+      service: nginx-svc
+      tls:
+        certResolver: letsencrypt  # Use Let's Encrypt with DNS-01 challenge
+        domains:
+          - main: "landing.sandbox.sopore.net"  # The domain name
+      middlewares:
+        - authelia-auth
+
+  middlewares:
+    authelia-auth:
+      forwardAuth:
+        address: "http://authelia:9091/api/verify"  # Authelia verification endpoint
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-Auth-User"
+          - "X-Auth-Group"
+          - "X-Auth-Session"
+
+  services:
+    signin-svc:
+      loadBalancer:
+        servers:
+          - url: "http://authelia:9091"  # Replace with your backend URL
+    nginx-svc:
+      loadBalancer:
+        servers:
+          - url: "http://nginx:80"
+    hotspot-svc:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.56.120"
+    api:
+      loadBalancer:
+        servers:
+          - url: "https://traefik:18443"  # Traefik's internal dashboard 8080
+
